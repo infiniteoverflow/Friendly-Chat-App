@@ -31,7 +31,11 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
+import com.firebase.ui.auth.AuthUI;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -39,6 +43,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -61,6 +66,15 @@ public class MainActivity extends AppCompatActivity {
     private DatabaseReference mMessageDatabaseReference;
 
     private ChildEventListener childEventListener;
+
+    private FirebaseAuth firebaseAuth;
+    private FirebaseAuth.AuthStateListener authStateListener;
+
+    private List<AuthUI.IdpConfig> providers = Arrays.asList(
+            new AuthUI.IdpConfig.EmailBuilder().build(),
+            new AuthUI.IdpConfig.GoogleBuilder().build());
+
+    private int RC_SIGN_IN;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,6 +101,7 @@ public class MainActivity extends AppCompatActivity {
         // Initialize progress bar
         mProgressBar.setVisibility(ProgressBar.INVISIBLE);
 
+
         // ImagePickerButton shows an image picker to upload a image for a message
         mPhotoPickerButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -94,6 +109,8 @@ public class MainActivity extends AppCompatActivity {
                 // TODO: Fire an intent to show an image picker
             }
         });
+
+        firebaseAuth = FirebaseAuth.getInstance();
 
         // Enable Send button when there's text to send
         mMessageEditText.addTextChangedListener(new TextWatcher() {
@@ -157,6 +174,26 @@ public class MainActivity extends AppCompatActivity {
         };
 
         mMessageDatabaseReference.addChildEventListener(childEventListener);
+
+        /*authStateListener = new FirebaseAuth.AuthStateListener() {
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                FirebaseUser user = firebaseAuth.getCurrentUser();
+                if(user!= null) {
+                    //User is signed in
+                    Toast.makeText(MainActivity.this, "Welcome to Friendly chat", Toast.LENGTH_SHORT).show();
+                }
+                else {
+                    //User is signed out
+                    startActivityForResult(
+                            AuthUI.getInstance()
+                                    .createSignInIntentBuilder()
+                                    .setAvailableProviders(providers)
+                                    .build(),
+                            RC_SIGN_IN);
+                }
+            }
+        };*/
     }
 
     @Override
@@ -169,5 +206,17 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        firebaseAuth.removeAuthStateListener(authStateListener);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        firebaseAuth.addAuthStateListener(authStateListener);
     }
 }
